@@ -13,20 +13,22 @@
 
 #include "Util/util.h"
 
-namespace toolkit {
+namespace toolkit
+{
 
-class FdSet {
-public:
-    FdSet();
-    ~FdSet();
-    void fdZero();
-    void fdSet(int fd);
-    void fdClr(int fd);
-    bool isSet(int fd);
-    void *_ptr;
-};
+    class FdSet
+    {
+      public:
+        FdSet();
+        ~FdSet();
+        void  fdZero();
+        void  fdSet(int fd);
+        void  fdClr(int fd);
+        bool  isSet(int fd);
+        void* _ptr;
+    };
 
-int zl_select(int cnt, FdSet *read, FdSet *write, FdSet *err, struct timeval *tv);
+    int zl_select(int cnt, FdSet* read, FdSet* write, FdSet* err, struct timeval* tv);
 
 } /* namespace toolkit */
 #endif /* SRC_POLLER_SELECTWRAP_H_ */

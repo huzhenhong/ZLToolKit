@@ -11,9 +11,9 @@
 #include "util.h"
 #include "NoticeCenter.h"
 
-namespace toolkit {
+namespace toolkit
+{
 
-INSTANCE_IMP(NoticeCenter)
+    INSTANCE_IMP(NoticeCenter)
 
 } /* namespace toolkit */
-

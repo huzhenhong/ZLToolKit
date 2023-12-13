@@ -13,156 +13,193 @@
 using namespace std;
 using namespace toolkit;
 
-//测试onCreate和onDestory同时存在
-class TestA {
-public:
-    TestA() {
+// 测试onCreate和onDestory同时存在
+class TestA
+{
+  public:
+    TestA()
+    {
         TraceL;
     }
 
-    ~TestA() {
+    ~TestA()
+    {
         TraceL;
     }
 
-    void onCreate() {
+    void onCreate()
+    {
         TraceL << demangle(typeid(*this).name()) << "::" << __FUNCTION__;
     }
 
-    void onDestory() {
-        TraceL << demangle(typeid(*this).name()) << "::" << __FUNCTION__;
-    }
-};
-
-//测试只存在onCreate
-class TestB {
-public:
-    TestB() {
-        TraceL;
-    }
-
-    ~TestB() {
-        TraceL;
-    }
-
-    void onCreate() {
+    void onDestory()
+    {
         TraceL << demangle(typeid(*this).name()) << "::" << __FUNCTION__;
     }
 };
 
-//测试只存在onDestory
-class TestC {
-public:
-    TestC() {
+// 测试只存在onCreate
+class TestB
+{
+  public:
+    TestB()
+    {
         TraceL;
     }
 
-    ~TestC() {
+    ~TestB()
+    {
         TraceL;
     }
 
-    void onDestory() {
+    void onCreate()
+    {
         TraceL << demangle(typeid(*this).name()) << "::" << __FUNCTION__;
     }
 };
 
-//测试onCreate和onDestory返回值不为void时
-class TestD {
-public:
-    TestD() {
+// 测试只存在onDestory
+class TestC
+{
+  public:
+    TestC()
+    {
         TraceL;
     }
 
-    ~TestD() {
+    ~TestC()
+    {
         TraceL;
     }
 
-    int onCreate() {
+    void onDestory()
+    {
+        TraceL << demangle(typeid(*this).name()) << "::" << __FUNCTION__;
+    }
+};
+
+// 测试onCreate和onDestory返回值不为void时
+class TestD
+{
+  public:
+    TestD()
+    {
+        TraceL;
+    }
+
+    ~TestD()
+    {
+        TraceL;
+    }
+
+    int onCreate()
+    {
         TraceL << demangle(typeid(*this).name()) << "::" << __FUNCTION__;
         return 1;
     }
 
-    std::string onDestory() {
+    std::string onDestory()
+    {
         TraceL << demangle(typeid(*this).name()) << "::" << __FUNCTION__;
         return "test";
     }
 };
 
-//测试onCreate和onDestory都不存在时
-class TestE {
-public:
-    TestE() {
+// 测试onCreate和onDestory都不存在时
+class TestE
+{
+  public:
+    TestE()
+    {
         TraceL;
     }
 
-    ~TestE() {
+    ~TestE()
+    {
         TraceL;
     }
 };
 
-//测试自定义构造函数
-class TestF {
-public:
-    TestF(int a, const char *b) {
+// 测试自定义构造函数
+class TestF
+{
+  public:
+    TestF(int a, const char* b)
+    {
         TraceL << a << " " << b;
     }
 
-    ~TestF() {
+    ~TestF()
+    {
         TraceL;
     }
 };
 
-//测试自定义onCreate函数
-class TestH {
-public:
-    TestH() {
+// 测试自定义onCreate函数
+class TestH
+{
+  public:
+    TestH()
+    {
         TraceL;
     }
 
-    int onCreate(int a = 0, const char *b = nullptr) {
+    int onCreate(int a = 0, const char* b = nullptr)
+    {
         TraceL << demangle(typeid(*this).name()) << "::" << __FUNCTION__ << " " << a << " " << b;
         return 10;
     }
 
-    ~TestH() {
+    ~TestH()
+    {
         TraceL;
     }
 };
 
-//测试onDestory函数抛异常
-class TestI {
-public:
-    TestI() {
+// 测试onDestory函数抛异常
+class TestI
+{
+  public:
+    TestI()
+    {
         TraceL;
     }
 
-    int onDestory() {
+    int onDestory()
+    {
         TraceL << demangle(typeid(*this).name()) << "::" << __FUNCTION__;
         throw std::runtime_error("TestI");
     }
 
-    ~TestI() {
+    ~TestI()
+    {
         TraceL;
     }
 };
 
-//测试自定义onDestory，onDestory将被忽略调用
-class TestJ {
-public:
-    TestJ() {
+// 测试自定义onDestory，onDestory将被忽略调用
+class TestJ
+{
+  public:
+    TestJ()
+    {
         TraceL;
     }
 
-    int onDestory(int a) {
+    int onDestory(int a)
+    {
         return a;
     }
 
-    ~TestJ() {
+    ~TestJ()
+    {
         TraceL;
     }
 };
 
-int main() {
-    //初始化日志系统
+int main()
+{
+    // 初始化日志系统
     Logger::Instance().add(std::make_shared<ConsoleChannel>());
     Logger::Instance().setWriter(std::make_shared<AsyncLogWriter>());
 

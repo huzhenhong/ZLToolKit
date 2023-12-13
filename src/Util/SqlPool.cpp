@@ -10,18 +10,18 @@
 
 #if defined(ENABLE_MYSQL)
 
-#include <memory>
-#include "util.h"
-#include "onceToken.h"
-#include "SqlPool.h"
+    #include <memory>
+    #include "util.h"
+    #include "onceToken.h"
+    #include "SqlPool.h"
 
 using namespace std;
 
-namespace toolkit {
+namespace toolkit
+{
 
-INSTANCE_IMP(SqlPool)
+    INSTANCE_IMP(SqlPool)
 
 } /* namespace toolkit */
 
-#endif// defined(ENABLE_MYSQL)
-
+#endif  // defined(ENABLE_MYSQL)

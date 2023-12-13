@@ -12,73 +12,87 @@
 
 using namespace std;
 
-namespace toolkit {
+namespace toolkit
+{
 
-Server::Server(EventPoller::Ptr poller) {
-    _poller = poller ? std::move(poller) : EventPollerPool::Instance().getPoller();
-}
-
-////////////////////////////////////////////////////////////////////////////////////
-
-SessionHelper::SessionHelper(const std::weak_ptr<Server> &server, Session::Ptr session, std::string cls) {
-    _server = server;
-    _session = std::move(session);
-    _cls = std::move(cls);
-    //记录session至全局的map，方便后面管理
-    _session_map = SessionMap::Instance().shared_from_this();
-    _identifier = _session->getIdentifier();
-    _session_map->add(_identifier, _session);
-}
-
-SessionHelper::~SessionHelper() {
-    if (!_server.lock()) {
-        //务必通知Session已从TcpServer脱离
-        _session->onError(SockException(Err_other, "Server shutdown"));
+    Server::Server(EventPoller::Ptr poller)
+    {
+        _poller = poller ? std::move(poller) : EventPollerPool::Instance().getPoller();
     }
-    //从全局map移除相关记录
-    _session_map->del(_identifier);
-}
 
-const Session::Ptr &SessionHelper::session() const {
-    return _session;
-}
+    ////////////////////////////////////////////////////////////////////////////////////
 
-const std::string &SessionHelper::className() const {
-    return _cls;
-}
-
-////////////////////////////////////////////////////////////////////////////////////
-
-bool SessionMap::add(const string &tag, const Session::Ptr &session) {
-    lock_guard<mutex> lck(_mtx_session);
-    return _map_session.emplace(tag, session).second;
-}
-
-bool SessionMap::del(const string &tag) {
-    lock_guard<mutex> lck(_mtx_session);
-    return _map_session.erase(tag);
-}
-
-Session::Ptr SessionMap::get(const string &tag) {
-    lock_guard<mutex> lck(_mtx_session);
-    auto it = _map_session.find(tag);
-    if (it == _map_session.end()) {
-        return nullptr;
+    SessionHelper::SessionHelper(const std::weak_ptr<Server>& server, Session::Ptr session, std::string cls)
+    {
+        _server      = server;
+        _session     = std::move(session);
+        _cls         = std::move(cls);
+        // 记录session至全局的map，方便后面管理
+        _session_map = SessionMap::Instance().shared_from_this();
+        _identifier  = _session->getIdentifier();
+        _session_map->add(_identifier, _session);
     }
-    return it->second.lock();
-}
 
-void SessionMap::for_each_session(const function<void(const string &id, const Session::Ptr &session)> &cb) {
-    lock_guard<mutex> lck(_mtx_session);
-    for (auto it = _map_session.begin(); it != _map_session.end();) {
-        auto session = it->second.lock();
-        if (!session) {
-            it = _map_session.erase(it);
-            continue;
+    SessionHelper::~SessionHelper()
+    {
+        if (!_server.lock())
+        {
+            // 务必通知Session已从TcpServer脱离
+            _session->onError(SockException(Err_other, "Server shutdown"));
         }
-        cb(it->first, session);
-        ++it;
+        // 从全局map移除相关记录
+        _session_map->del(_identifier);
     }
-}
 
-} // namespace toolkit
+    const Session::Ptr& SessionHelper::session() const
+    {
+        return _session;
+    }
+
+    const std::string& SessionHelper::className() const
+    {
+        return _cls;
+    }
+
+    ////////////////////////////////////////////////////////////////////////////////////
+
+    bool SessionMap::add(const string& tag, const Session::Ptr& session)
+    {
+        lock_guard<mutex> lck(_mtx_session);
+        return _map_session.emplace(tag, session).second;
+    }
+
+    bool SessionMap::del(const string& tag)
+    {
+        lock_guard<mutex> lck(_mtx_session);
+        return _map_session.erase(tag);
+    }
+
+    Session::Ptr SessionMap::get(const string& tag)
+    {
+        lock_guard<mutex> lck(_mtx_session);
+        auto              it = _map_session.find(tag);
+        if (it == _map_session.end())
+        {
+            return nullptr;
+        }
+        return it->second.lock();
+    }
+
+    void SessionMap::for_each_session(const function<void(const string& id, const Session::Ptr& session)>& cb)
+    {
+        lock_guard<mutex> lck(_mtx_session);
+        for (auto it = _map_session.begin(); it != _map_session.end();)
+        {
+            auto session = it->second.lock();
+            if (!session)
+            {
+                it = _map_session.erase(it);
+                continue;
+            }
+            cb(it->first, session);
+            ++it;
+        }
+    }
+
+}  // namespace toolkit

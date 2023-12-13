@@ -17,237 +17,257 @@
 #include "Util/List.h"
 #include "Util/util.h"
 
-namespace toolkit {
-
-/**
-* cpu负载计算器
-*/
-class ThreadLoadCounter {
-public:
-    /**
-     * 构造函数
-     * @param max_size 统计样本数量
-     * @param max_usec 统计时间窗口,亦即最近{max_usec}的cpu负载率
-     */
-    ThreadLoadCounter(uint64_t max_size, uint64_t max_usec);
-    ~ThreadLoadCounter() = default;
+namespace toolkit
+{
 
     /**
-     * 线程进入休眠
+     * cpu负载计算器
      */
-    void startSleep();
+    class ThreadLoadCounter
+    {
+      public:
+        /**
+         * 构造函数
+         * @param max_size 统计样本数量
+         * @param max_usec 统计时间窗口,亦即最近{max_usec}的cpu负载率
+         */
+        ThreadLoadCounter(uint64_t max_size, uint64_t max_usec);
+        ~ThreadLoadCounter() = default;
 
-    /**
-     * 休眠唤醒,结束休眠
-     */
-    void sleepWakeUp();
+        /**
+         * 线程进入休眠
+         */
+        void startSleep();
 
-    /**
-     * 返回当前线程cpu使用率，范围为 0 ~ 100
-     * @return 当前线程cpu使用率
-     */
-    int load();
+        /**
+         * 休眠唤醒,结束休眠
+         */
+        void sleepWakeUp();
 
-private:
-    struct TimeRecord {
-        TimeRecord(uint64_t tm, bool slp) {
-            _time = tm;
-            _sleep = slp;
-        }
+        /**
+         * 返回当前线程cpu使用率，范围为 0 ~ 100
+         * @return 当前线程cpu使用率
+         */
+        int  load();
 
-        bool _sleep;
-        uint64_t _time;
+      private:
+        struct TimeRecord
+        {
+            TimeRecord(uint64_t tm, bool slp)
+            {
+                _time  = tm;
+                _sleep = slp;
+            }
+
+            bool     _sleep;
+            uint64_t _time;
+        };
+
+      private:
+        bool             _sleeping = true;
+        uint64_t         _last_sleep_time;
+        uint64_t         _last_wake_time;
+        uint64_t         _max_size;
+        uint64_t         _max_usec;
+        std::mutex       _mtx;
+        List<TimeRecord> _time_list;
     };
 
-private:
-    bool _sleeping = true;
-    uint64_t _last_sleep_time;
-    uint64_t _last_wake_time;
-    uint64_t _max_size;
-    uint64_t _max_usec;
-    std::mutex _mtx;
-    List<TimeRecord> _time_list;
-};
+    class TaskCancelable : public noncopyable
+    {
+      public:
+        TaskCancelable()          = default;
+        virtual ~TaskCancelable() = default;
+        virtual void cancel()     = 0;
+    };
 
-class TaskCancelable : public noncopyable {
-public:
-    TaskCancelable() = default;
-    virtual ~TaskCancelable() = default;
-    virtual void cancel() = 0;
-};
+    template<class R, class... ArgTypes>
+    class TaskCancelableImp;
 
-template<class R, class... ArgTypes>
-class TaskCancelableImp;
+    template<class R, class... ArgTypes>
+    class TaskCancelableImp<R(ArgTypes...)> : public TaskCancelable
+    {
+      public:
+        using Ptr       = std::shared_ptr<TaskCancelableImp>;
+        using func_type = std::function<R(ArgTypes...)>;
 
-template<class R, class... ArgTypes>
-class TaskCancelableImp<R(ArgTypes...)> : public TaskCancelable {
-public:
-    using Ptr = std::shared_ptr<TaskCancelableImp>;
-    using func_type = std::function<R(ArgTypes...)>;
+        ~TaskCancelableImp() = default;
 
-    ~TaskCancelableImp() = default;
-
-    template<typename FUNC>
-    TaskCancelableImp(FUNC &&task) {
-        _strongTask = std::make_shared<func_type>(std::forward<FUNC>(task));
-        _weakTask = _strongTask;
-    }
-
-    void cancel() override {
-        _strongTask = nullptr;
-    }
-
-    operator bool() {
-        return _strongTask && *_strongTask;
-    }
-
-    void operator=(std::nullptr_t) {
-        _strongTask = nullptr;
-    }
-
-    R operator()(ArgTypes ...args) const {
-        auto strongTask = _weakTask.lock();
-        if (strongTask && *strongTask) {
-            return (*strongTask)(std::forward<ArgTypes>(args)...);
+        template<typename FUNC>
+        TaskCancelableImp(FUNC&& task)
+        {
+            _strongTask = std::make_shared<func_type>(std::forward<FUNC>(task));
+            _weakTask   = _strongTask;
         }
-        return defaultValue<R>();
-    }
 
-    template<typename T>
-    static typename std::enable_if<std::is_void<T>::value, void>::type
-    defaultValue() {}
+        void cancel() override
+        {
+            _strongTask = nullptr;
+        }
 
-    template<typename T>
-    static typename std::enable_if<std::is_pointer<T>::value, T>::type
-    defaultValue() {
-        return nullptr;
-    }
+        operator bool()
+        {
+            return _strongTask && *_strongTask;
+        }
 
-    template<typename T>
-    static typename std::enable_if<std::is_integral<T>::value, T>::type
-    defaultValue() {
-        return 0;
-    }
+        void operator=(std::nullptr_t)
+        {
+            _strongTask = nullptr;
+        }
 
-protected:
-    std::weak_ptr<func_type> _weakTask;
-    std::shared_ptr<func_type> _strongTask;
-};
+        R operator()(ArgTypes... args) const
+        {
+            auto strongTask = _weakTask.lock();
+            if (strongTask && *strongTask)
+            {
+                return (*strongTask)(std::forward<ArgTypes>(args)...);
+            }
+            return defaultValue<R>();
+        }
 
-using TaskIn = std::function<void()>;
-using Task = TaskCancelableImp<void()>;
+        template<typename T>
+        static typename std::enable_if<std::is_void<T>::value, void>::type
+            defaultValue()
+        {
+        }
 
-class TaskExecutorInterface {
-public:
-    TaskExecutorInterface() = default;
-    virtual ~TaskExecutorInterface() = default;
+        template<typename T>
+        static typename std::enable_if<std::is_pointer<T>::value, T>::type
+            defaultValue()
+        {
+            return nullptr;
+        }
 
-    /**
-     * 异步执行任务
-     * @param task 任务
-     * @param may_sync 是否允许同步执行该任务
-     * @return 任务是否添加成功
-     */
-    virtual Task::Ptr async(TaskIn task, bool may_sync = true) = 0;
+        template<typename T>
+        static typename std::enable_if<std::is_integral<T>::value, T>::type
+            defaultValue()
+        {
+            return 0;
+        }
 
-    /**
-     * 最高优先级方式异步执行任务
-     * @param task 任务
-     * @param may_sync 是否允许同步执行该任务
-     * @return 任务是否添加成功
-     */
-    virtual Task::Ptr async_first(TaskIn task, bool may_sync = true);
+      protected:
+        std::weak_ptr<func_type>   _weakTask;
+        std::shared_ptr<func_type> _strongTask;
+    };
 
-    /**
-     * 同步执行任务
-     * @param task
-     * @return
-     */
-    void sync(const TaskIn &task);
+    using TaskIn = std::function<void()>;
+    using Task   = TaskCancelableImp<void()>;
 
-    /**
-     * 最高优先级方式同步执行任务
-     * @param task
-     * @return
-     */
-    void sync_first(const TaskIn &task);
-};
+    class TaskExecutorInterface
+    {
+      public:
+        TaskExecutorInterface()          = default;
+        virtual ~TaskExecutorInterface() = default;
 
-/**
-* 任务执行器
-*/
-class TaskExecutor : public ThreadLoadCounter, public TaskExecutorInterface {
-public:
-    using Ptr = std::shared_ptr<TaskExecutor>;
+        /**
+         * 异步执行任务
+         * @param task 任务
+         * @param may_sync 是否允许同步执行该任务
+         * @return 任务是否添加成功
+         */
+        virtual Task::Ptr async(TaskIn task, bool may_sync = true) = 0;
 
-    /**
-     * 构造函数
-     * @param max_size cpu负载统计样本数
-     * @param max_usec cpu负载统计时间窗口大小
-     */
-    TaskExecutor(uint64_t max_size = 32, uint64_t max_usec = 2 * 1000 * 1000);
-    ~TaskExecutor() = default;
-};
+        /**
+         * 最高优先级方式异步执行任务
+         * @param task 任务
+         * @param may_sync 是否允许同步执行该任务
+         * @return 任务是否添加成功
+         */
+        virtual Task::Ptr async_first(TaskIn task, bool may_sync = true);
 
-class TaskExecutorGetter {
-public:
-    using Ptr = std::shared_ptr<TaskExecutorGetter>;
+        /**
+         * 同步执行任务
+         * @param task
+         * @return
+         */
+        void              sync(const TaskIn& task);
 
-    virtual ~TaskExecutorGetter() = default;
-
-    /**
-     * 获取任务执行器
-     * @return 任务执行器
-     */
-    virtual TaskExecutor::Ptr getExecutor() = 0;
-
-    /**
-     * 获取执行器个数
-     */
-    virtual size_t getExecutorSize() const = 0;
-};
-
-class TaskExecutorGetterImp : public TaskExecutorGetter {
-public:
-    TaskExecutorGetterImp() = default;
-    ~TaskExecutorGetterImp() = default;
+        /**
+         * 最高优先级方式同步执行任务
+         * @param task
+         * @return
+         */
+        void              sync_first(const TaskIn& task);
+    };
 
     /**
-     * 根据线程负载情况，获取最空闲的任务执行器
-     * @return 任务执行器
+     * 任务执行器
      */
-    TaskExecutor::Ptr getExecutor() override;
+    class TaskExecutor : public ThreadLoadCounter, public TaskExecutorInterface
+    {
+      public:
+        using Ptr = std::shared_ptr<TaskExecutor>;
 
-    /**
-     * 获取所有线程的负载率
-     * @return 所有线程的负载率
-     */
-    std::vector<int> getExecutorLoad();
+        /**
+         * 构造函数
+         * @param max_size cpu负载统计样本数
+         * @param max_usec cpu负载统计时间窗口大小
+         */
+        TaskExecutor(uint64_t max_size = 32, uint64_t max_usec = 2 * 1000 * 1000);
+        ~TaskExecutor() = default;
+    };
 
-    /**
-     * 获取所有线程任务执行延时，单位毫秒
-     * 通过此函数也可以大概知道线程负载情况
-     * @return
-     */
-    void getExecutorDelay(const std::function<void(const std::vector<int> &)> &callback);
+    class TaskExecutorGetter
+    {
+      public:
+        using Ptr = std::shared_ptr<TaskExecutorGetter>;
 
-    /**
-     * 遍历所有线程
-     */
-    void for_each(const std::function<void(const TaskExecutor::Ptr &)> &cb);
+        virtual ~TaskExecutorGetter() = default;
 
-    /**
-     * 获取线程数
-     */
-    size_t getExecutorSize() const override;
+        /**
+         * 获取任务执行器
+         * @return 任务执行器
+         */
+        virtual TaskExecutor::Ptr getExecutor() = 0;
 
-protected:
-    size_t addPoller(const std::string &name, size_t size, int priority, bool register_thread, bool enable_cpu_affinity = true);
+        /**
+         * 获取执行器个数
+         */
+        virtual size_t            getExecutorSize() const = 0;
+    };
 
-protected:
-    size_t _thread_pos = 0;
-    std::vector<TaskExecutor::Ptr> _threads;
-};
+    class TaskExecutorGetterImp : public TaskExecutorGetter
+    {
+      public:
+        TaskExecutorGetterImp()  = default;
+        ~TaskExecutorGetterImp() = default;
 
-}//toolkit
-#endif //ZLTOOLKIT_TASKEXECUTOR_H
+        /**
+         * 根据线程负载情况，获取最空闲的任务执行器
+         * @return 任务执行器
+         */
+        TaskExecutor::Ptr getExecutor() override;
+
+        /**
+         * 获取所有线程的负载率
+         * @return 所有线程的负载率
+         */
+        std::vector<int>  getExecutorLoad();
+
+        /**
+         * 获取所有线程任务执行延时，单位毫秒
+         * 通过此函数也可以大概知道线程负载情况
+         * @return
+         */
+        void              getExecutorDelay(const std::function<void(const std::vector<int>&)>& callback);
+
+        /**
+         * 遍历所有线程
+         */
+        void              for_each(const std::function<void(const TaskExecutor::Ptr&)>& cb);
+
+        /**
+         * 获取线程数
+         */
+        size_t            getExecutorSize() const override;
+
+      protected:
+        size_t addPoller(const std::string& name, size_t size, int priority, bool register_thread, bool enable_cpu_affinity = true);
+
+      protected:
+        size_t                         _thread_pos = 0;
+        std::vector<TaskExecutor::Ptr> _threads;
+    };
+
+}  // namespace toolkit
+#endif  // ZLTOOLKIT_TASKEXECUTOR_H

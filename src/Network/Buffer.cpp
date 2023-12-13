@@ -12,13 +12,15 @@
 #include "Buffer.h"
 #include "Util/onceToken.h"
 
-namespace toolkit {
+namespace toolkit
+{
 
-StatisticImp(Buffer)
-StatisticImp(BufferRaw)
-StatisticImp(BufferLikeString)
+    StatisticImp(Buffer)
+        StatisticImp(BufferRaw)
+            StatisticImp(BufferLikeString)
 
-BufferRaw::Ptr BufferRaw::create() {
+                BufferRaw::Ptr BufferRaw::create()
+    {
 #if 0
     static ResourcePool<BufferRaw> packet_pool;
     static onceToken token([]() {
@@ -28,8 +30,8 @@ BufferRaw::Ptr BufferRaw::create() {
     ret->setSize(0);
     return ret;
 #else
-    return Ptr(new BufferRaw);
+        return Ptr(new BufferRaw);
 #endif
-}
+    }
 
-}//namespace toolkit
+}  // namespace toolkit

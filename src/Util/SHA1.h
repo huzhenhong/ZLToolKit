@@ -21,27 +21,28 @@
 #include <iostream>
 #include <string>
 
-namespace toolkit {
-
-class SHA1 final
+namespace toolkit
 {
-public:
-    SHA1();
 
-    void update(const std::string &s);
-    void update(std::istream &is);
-    std::string final();
-    std::string final_bin();
+    class SHA1 final
+    {
+      public:
+        SHA1();
 
-    static std::string from_file(const std::string &filename);
+        void               update(const std::string& s);
+        void               update(std::istream& is);
+        std::string        final();
+        std::string        final_bin();
 
-    static std::string encode(const std::string &s);
-    static std::string encode_bin(const std::string &s);
+        static std::string from_file(const std::string& filename);
 
-private:
-    uint32_t digest[5];
-    std::string buffer;
-    uint64_t transforms;
-};
+        static std::string encode(const std::string& s);
+        static std::string encode_bin(const std::string& s);
 
-}//namespace toolkit
+      private:
+        uint32_t    digest[5];
+        std::string buffer;
+        uint64_t    transforms;
+    };
+
+}  // namespace toolkit
