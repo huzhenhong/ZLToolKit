@@ -31,7 +31,9 @@
 namespace toolkit
 {
 
-    class EventPoller : public TaskExecutor, public AnyStorage, public std::enable_shared_from_this<EventPoller>
+    class EventPoller : public TaskExecutor,
+                        public AnyStorage,
+                        public std::enable_shared_from_this<EventPoller>
     {
       public:
         friend class TaskExecutorGetterImp;
@@ -227,11 +229,13 @@ namespace toolkit
         std::multimap<uint64_t, DelayTask::Ptr> _delay_task_map;
     };
 
-    class EventPollerPool : public std::enable_shared_from_this<EventPollerPool>, public TaskExecutorGetterImp
+    class EventPollerPool : public std::enable_shared_from_this<EventPollerPool>,
+                            public TaskExecutorGetterImp
     {
       public:
         using Ptr = std::shared_ptr<EventPollerPool>;
         static const std::string kOnStarted;
+
 #define EventPollerPoolOnStartedArgs EventPollerPool &pool, size_t &size
 
         ~EventPollerPool() = default;

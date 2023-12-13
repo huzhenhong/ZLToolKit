@@ -25,8 +25,11 @@ using namespace toolkit;
 int main()
 {
     static bool exit_flag = false;
-    signal(SIGINT, [](int)
-           { exit_flag = true; });
+    signal(SIGINT,
+           [](int)
+           {
+               exit_flag = true;
+           });
 
     // 设置日志
     Logger::Instance().add(std::make_shared<ConsoleChannel>());
@@ -44,21 +47,27 @@ int main()
             }
             DebugL << "cpu负载:" << printer;
 
-            EventPollerPool::Instance().getExecutorDelay([](const vector<int>& vec)
-                                                         {
-                _StrPrinter printer;
-                for(auto delay : vec){
-                    printer << delay << "-";
-                }
-                DebugL << "cpu任务执行延时:" << printer; });
+            EventPollerPool::Instance().getExecutorDelay(
+                [](const vector<int>& vec)
+                {
+                    _StrPrinter printer;
+                    for (auto delay : vec)
+                    {
+                        printer << delay << "-";
+                    }
+                    DebugL << "cpu任务执行延时:" << printer;
+                });
+
             ticker.resetTime();
         }
 
-        EventPollerPool::Instance().getExecutor()->async([]()
-                                                         {
-            auto usec = rand() % 4000;
-            //DebugL << usec;
-            usleep(usec); });
+        EventPollerPool::Instance().getExecutor()->async(
+            []()
+            {
+                auto usec = rand() % 4000;
+                // DebugL << usec;
+                usleep(usec);
+            });
 
         usleep(2000);
     }

@@ -506,14 +506,18 @@ namespace toolkit
         return flushDelayTask(now);
     }
 
-    EventPoller::DelayTask::Ptr EventPoller::doDelayTask(uint64_t delay_ms, function<uint64_t()> task)
+    EventPoller::DelayTask::Ptr EventPoller::doDelayTask(uint64_t             delay_ms,
+                                                         function<uint64_t()> task)
     {
         DelayTask::Ptr ret       = std::make_shared<DelayTask>(std::move(task));
         auto           time_line = getCurrentMillisecond() + delay_ms;
-        async_first([time_line, ret, this]()
-                    {
-        //异步执行的目的是刷新select或epoll的休眠时间
-        _delay_task_map.emplace(time_line, ret); });
+        async_first([time_line,
+                     ret,
+                     this]()
+                    { 
+                        // 异步执行的目的是刷新 select 或 epoll 的休眠时间
+                        _delay_task_map.emplace(time_line, ret); });
+
         return ret;
     }
 
@@ -548,7 +552,12 @@ namespace toolkit
 
     EventPollerPool::EventPollerPool()
     {
-        auto size = addPoller("event poller", s_pool_size, ThreadPool::PRIORITY_HIGHEST, true, s_enable_cpu_affinity);
+        auto size = addPoller("event poller",
+                              s_pool_size,
+                              ThreadPool::PRIORITY_HIGHEST,
+                              true,
+                              s_enable_cpu_affinity);
+
         NOTICE_EMIT(EventPollerPoolOnStartedArgs, kOnStarted, *this, size);
         InfoL << "EventPoller created size: " << size;
     }

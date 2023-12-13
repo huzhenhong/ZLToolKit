@@ -29,6 +29,7 @@ namespace toolkit
          * @param poller EventPoller对象，可以为nullptr
          */
         Timer(float second, const std::function<bool()>& cb, const EventPoller::Ptr& poller);
+
         ~Timer();
 
       private:
