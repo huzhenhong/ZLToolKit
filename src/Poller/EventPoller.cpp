@@ -51,8 +51,12 @@ namespace toolkit
         SockUtil::setNoBlocked(_pipe.writeFD());
 
         // 添加内部管道事件
-        if (addEvent(_pipe.readFD(), EventPoller::Event_Read, [this](int event)
-                     { onPipeEvent(); }) == -1)
+        if (addEvent(_pipe.readFD(),
+                     EventPoller::Event_Read,
+                     [this](int event)
+                     {
+                         onPipeEvent();
+                     }) == -1)
         {
             throw std::runtime_error("Add pipe fd to poller failed");
         }
@@ -75,10 +79,13 @@ namespace toolkit
 
     void EventPoller::shutdown()
     {
-        async_l([]()
-                { throw ExitException(); },
-                false,
-                true);
+        async_l(
+            []()
+            {
+                throw ExitException();
+            },
+            false,
+            true);
 
         if (_loop_thread)
         {
@@ -90,6 +97,7 @@ namespace toolkit
             catch (...)
             {
             }
+
             delete _loop_thread;
             _loop_thread = nullptr;
         }
@@ -148,8 +156,12 @@ namespace toolkit
 #endif  // HAS_EPOLL
         }
 
-        async([this, fd, event, cb]()
-              { addEvent(fd, event, std::move(const_cast<PollEventCB&>(cb))); });
+        async(
+            [this, fd, event, cb]()
+            {
+                addEvent(fd, event, std::move(const_cast<PollEventCB&>(cb)));
+            });
+
         return 0;
     }
 
@@ -174,8 +186,11 @@ namespace toolkit
         }
 
         // 跨线程操作
-        async([this, fd, cb]()
-              { delEvent(fd, std::move(const_cast<PollCompleteCB&>(cb))); });
+        async(
+            [this, fd, cb]()
+            {
+                delEvent(fd, std::move(const_cast<PollCompleteCB&>(cb)));
+            });
         return 0;
     }
 
@@ -186,6 +201,7 @@ namespace toolkit
         {
             cb = [](bool success) {};
         }
+
         if (isCurrentThread())
         {
 #if defined(HAS_EPOLL)
@@ -205,8 +221,11 @@ namespace toolkit
             return 0;
 #endif  // HAS_EPOLL
         }
-        async([this, fd, event, cb]()
-              { modifyEvent(fd, event, std::move(const_cast<PollCompleteCB&>(cb))); });
+        async(
+            [this, fd, event, cb]()
+            {
+                modifyEvent(fd, event, std::move(const_cast<PollCompleteCB&>(cb)));
+            });
         return 0;
     }
 
@@ -230,6 +249,7 @@ namespace toolkit
         }
 
         auto ret = std::make_shared<Task>(std::move(task));
+
         {
             lock_guard<mutex> lck(_mtx_task);
             if (first)
@@ -241,8 +261,10 @@ namespace toolkit
                 _list_task.emplace_back(ret);
             }
         }
+
         // 写数据到管道,唤醒主线程
         _pipe.write("", 1);
+
         return ret;
     }
 
@@ -262,6 +284,7 @@ namespace toolkit
                 // 读到管道数据,继续读,直到读空为止
                 continue;
             }
+
             if (err == 0 || get_uv_error(true) != UV_EAGAIN)
             {
                 // 收到eof或非EAGAIN(无更多数据)错误,说明管道无效了,重新打开管道
@@ -270,6 +293,7 @@ namespace toolkit
                 _pipe.reOpen();
                 addEventPipe();
             }
+
             break;
         }
 
@@ -279,15 +303,22 @@ namespace toolkit
             _list_swap.swap(_list_task);
         }
 
-        _list_swap.for_each([&](const Task::Ptr& task)
-                            {
-        try {
-            (*task)();
-        } catch (ExitException &) {
-            _exit_flag = true;
-        } catch (std::exception &ex) {
-            ErrorL << "Exception occurred when do async task: " << ex.what();
-        } });
+        _list_swap.for_each(
+            [&](const Task::Ptr& task)
+            {
+                try
+                {
+                    (*task)();
+                }
+                catch (ExitException&)
+                {
+                    _exit_flag = true;
+                }
+                catch (std::exception& ex)
+                {
+                    ErrorL << "Exception occurred when do async task: " << ex.what();
+                }
+            });
     }
 
     BufferRaw::Ptr EventPoller::getSharedBuffer()
@@ -329,9 +360,11 @@ namespace toolkit
             {
                 s_current_poller = shared_from_this();
             }
+
             _sem_run_started.post();
             _exit_flag = false;
             uint64_t minDelay;
+
 #if defined(HAS_EPOLL)
             struct epoll_event events[EPOLL_SIZE];
             while (!_exit_flag)
@@ -371,6 +404,7 @@ namespace toolkit
             FdSet                  set_read, set_write, set_err;
             List<Poll_Record::Ptr> callback_list;
             struct timeval         tv;
+
             while (!_exit_flag)
             {
                 // 定时器事件中可能操作_event_map
@@ -382,20 +416,24 @@ namespace toolkit
                 set_write.fdZero();
                 set_err.fdZero();
                 max_fd = 0;
+
                 for (auto& pr : _event_map)
                 {
                     if (pr.first > max_fd)
                     {
                         max_fd = pr.first;
                     }
+
                     if (pr.second->event & Event_Read)
                     {
                         set_read.fdSet(pr.first);  // 监听管道可读事件
                     }
+
                     if (pr.second->event & Event_Write)
                     {
                         set_write.fdSet(pr.first);  // 监听管道可写事件
                     }
+
                     if (pr.second->event & Event_Error)
                     {
                         set_err.fdSet(pr.first);  // 监听管道错误事件
@@ -403,7 +441,11 @@ namespace toolkit
                 }
 
                 startSleep();  // 用于统计当前线程负载情况
-                ret = zl_select(max_fd + 1, &set_read, &set_write, &set_err, minDelay ? &tv : nullptr);
+                ret = zl_select(max_fd + 1,
+                                &set_read,
+                                &set_write,
+                                &set_err,
+                                minDelay ? &tv : nullptr);
                 sleepWakeUp();  // 用于统计当前线程负载情况
 
                 if (ret <= 0)
@@ -411,22 +453,27 @@ namespace toolkit
                     // 超时或被打断
                     continue;
                 }
+
                 // 收集select事件类型
                 for (auto& pr : _event_map)
                 {
                     int event = 0;
+
                     if (set_read.isSet(pr.first))
                     {
                         event |= Event_Read;
                     }
+
                     if (set_write.isSet(pr.first))
                     {
                         event |= Event_Write;
                     }
+
                     if (set_err.isSet(pr.first))
                     {
                         event |= Event_Error;
                     }
+
                     if (event != 0)
                     {
                         pr.second->attach = event;
@@ -434,13 +481,19 @@ namespace toolkit
                     }
                 }
 
-                callback_list.for_each([](Poll_Record::Ptr& record)
-                                       {
-                try {
-                    record->call_back(record->attach);
-                } catch (std::exception &ex) {
-                    ErrorL << "Exception occurred when do event task: " << ex.what();
-                } });
+                callback_list.for_each(
+                    [](Poll_Record::Ptr& record)
+                    {
+                        try
+                        {
+                            record->call_back(record->attach);
+                        }
+                        catch (std::exception& ex)
+                        {
+                            ErrorL << "Exception occurred when do event task: " << ex.what();
+                        }
+                    });
+
                 callback_list.clear();
             }
 #endif  // HAS_EPOLL
@@ -496,6 +549,7 @@ namespace toolkit
             // 没有剩余的定时器了
             return 0;
         }
+
         auto now = getCurrentMillisecond();
         if (it->first > now)
         {
@@ -511,19 +565,21 @@ namespace toolkit
     {
         DelayTask::Ptr ret       = std::make_shared<DelayTask>(std::move(task));
         auto           time_line = getCurrentMillisecond() + delay_ms;
-        async_first([time_line,
-                     ret,
-                     this]()
-                    { 
-                        // 异步执行的目的是刷新 select 或 epoll 的休眠时间
-                        _delay_task_map.emplace(time_line, ret); });
+        async_first(
+            [time_line,
+             ret,
+             this]()
+            {
+                // 异步执行的目的是刷新 select 或 epoll 的休眠时间
+                _delay_task_map.emplace(time_line, ret);
+            });
 
         return ret;
     }
 
     ///////////////////////////////////////////////
 
-    static size_t s_pool_size           = 0;
+    static size_t s_pool_size           = 1;
     static bool   s_enable_cpu_affinity = true;
 
     INSTANCE_IMP(EventPollerPool)

@@ -39,7 +39,11 @@ namespace toolkit
     WorkThreadPool::WorkThreadPool()
     {
         // 最低优先级
-        addPoller("work poller", s_pool_size, ThreadPool::PRIORITY_LOWEST, false, s_enable_cpu_affinity);
+        addPoller("work poller",
+                  s_pool_size,
+                  ThreadPool::PRIORITY_LOWEST,
+                  false,
+                  s_enable_cpu_affinity);
     }
 
     void WorkThreadPool::setPoolSize(size_t size)

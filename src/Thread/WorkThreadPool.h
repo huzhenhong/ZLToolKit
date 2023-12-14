@@ -17,7 +17,8 @@
 namespace toolkit
 {
 
-    class WorkThreadPool : public std::enable_shared_from_this<WorkThreadPool>, public TaskExecutorGetterImp
+    class WorkThreadPool : public std::enable_shared_from_this<WorkThreadPool>,
+                           public TaskExecutorGetterImp
     {
       public:
         using Ptr = std::shared_ptr<WorkThreadPool>;

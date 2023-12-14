@@ -246,10 +246,12 @@ namespace toolkit
             last  = index + strlen(delim);
             index = s.find(delim, last);
         }
+
         if (!s.size() || s.size() - last > 0)
         {
             ret.push_back(s.substr(last));
         }
+
         return ret;
     }
 
@@ -426,35 +428,46 @@ namespace toolkit
 
     static inline bool      initMillisecondThread()
     {
-        static std::thread s_thread([]()
-                                    {
-        setThreadName("stamp thread");
-        DebugL << "Stamp thread started";
-        uint64_t last = getCurrentMicrosecondOrigin();
-        uint64_t now;
-        uint64_t microsecond = 0;
-        while (true) {
-            now = getCurrentMicrosecondOrigin();
-            //记录系统时间戳，可回退
-            s_currentMicrosecond_system.store(now, memory_order_release);
-            s_currentMillisecond_system.store(now / 1000, memory_order_release);
+        static std::thread s_thread(
+            []()
+            {
+                setThreadName("stamp thread");
+                DebugL << "Stamp thread started";
+                uint64_t last = getCurrentMicrosecondOrigin();
+                uint64_t now;
+                uint64_t microsecond = 0;
+                while (true)
+                {
+                    now = getCurrentMicrosecondOrigin();
+                    // 记录系统时间戳，可回退
+                    s_currentMicrosecond_system.store(now, memory_order_release);
+                    s_currentMillisecond_system.store(now / 1000, memory_order_release);
 
-            //记录流逝时间戳，不可回退
-            int64_t expired = now - last;
-            last = now;
-            if (expired > 0 && expired < 1000 * 1000) {
-                //流逝时间处于0~1000ms之间，那么是合理的，说明没有调整系统时间
-                microsecond += expired;
-                s_currentMicrosecond.store(microsecond, memory_order_release);
-                s_currentMillisecond.store(microsecond / 1000, memory_order_release);
-            } else if (expired != 0) {
-                WarnL << "Stamp expired is abnormal: " << expired;
-            }
-            //休眠0.5 ms
-            usleep(500);
-        } });
-        static onceToken   s_token([]()
-                                 { s_thread.detach(); });
+                    // 记录流逝时间戳，不可回退
+                    int64_t expired = now - last;
+                    last            = now;
+                    if (expired > 0 && expired < 1000 * 1000)
+                    {
+                        // 流逝时间处于0~1000ms之间，那么是合理的，说明没有调整系统时间
+                        microsecond += expired;
+                        s_currentMicrosecond.store(microsecond, memory_order_release);
+                        s_currentMillisecond.store(microsecond / 1000, memory_order_release);
+                    }
+                    else if (expired != 0)
+                    {
+                        WarnL << "Stamp expired is abnormal: " << expired;
+                    }
+                    // 休眠0.5 ms
+                    usleep(500);
+                }
+            });
+
+        static onceToken s_token(
+            []()
+            {
+                s_thread.detach();
+            });
+
         return true;
     }
 
@@ -749,7 +762,6 @@ namespace toolkit
         auto value = *ekey ? getenv(ekey) : nullptr;
         return value ? value : "";
     }
-
 
     void Creator::onDestoryException(const type_info& info, const exception& ex)
     {

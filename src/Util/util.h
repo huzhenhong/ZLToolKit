@@ -55,6 +55,7 @@ namespace toolkit
 {
 
 #define StrPrinter ::toolkit::_StrPrinter()
+
     class _StrPrinter : public std::string
     {
       public:
@@ -77,6 +78,7 @@ namespace toolkit
         std::stringstream _stream;
     };
 
+
     // 禁止拷贝基类
     class noncopyable
     {
@@ -91,6 +93,7 @@ namespace toolkit
         noncopyable& operator=(const noncopyable& that) = delete;
         noncopyable& operator=(noncopyable&& that)      = delete;
     };
+
 
 #ifndef CLASS_FUNC_TRAITS
     #define CLASS_FUNC_TRAITS(func_name)                                                                                                                                                            \
@@ -190,6 +193,7 @@ namespace toolkit
         ~Creator() = default;
     };
 
+
     template<class C>
     class ObjectStatistic
     {
@@ -212,6 +216,7 @@ namespace toolkit
       private:
         static std::atomic<size_t>& getCounter();
     };
+
 
 #define StatisticImp(Type)                                   \
     template<>                                               \
@@ -239,7 +244,10 @@ namespace toolkit
     std::string&             strToUpper(std::string& str);
     std::string              strToUpper(std::string&& str);
     // 替换子字符串
-    void                     replace(std::string& str, const std::string& old_str, const std::string& new_str, std::string::size_type b_pos = 0);
+    void                     replace(std::string&           str,
+                                     const std::string&     old_str,
+                                     const std::string&     new_str,
+                                     std::string::size_type b_pos = 0);
     // 判断是否为ip
     bool                     isIP(const char* str);
     // 字符串是否以xx开头
@@ -270,6 +278,7 @@ namespace toolkit
         // Return the formatted string
         return std::string(buf.get(), buf.get() + result);
     }
+
 
 #ifndef bzero
     #define bzero(ptr, size) memset((ptr), 0, (size));
@@ -368,6 +377,7 @@ namespace toolkit
      */
     std::string getEnv(const std::string& key);
 
+
     // 可以保存任意的对象
     class Any
     {
@@ -396,8 +406,11 @@ namespace toolkit
         void set(ArgsType&&... args)
         {
             _type = &typeid(T);
-            _data.reset(new T(std::forward<ArgsType>(args)...), [](void* ptr)
-                        { delete (T*)ptr; });
+            _data.reset(new T(std::forward<ArgsType>(args)...),
+                        [](void* ptr)
+                        {
+                            delete (T*)ptr;
+                        });
         }
 
         template<typename T>
@@ -421,10 +434,12 @@ namespace toolkit
             {
                 throw std::invalid_argument("Any is empty");
             }
+
             if (safe && !is<T>())
             {
                 throw std::invalid_argument("Any::get(): " + demangle(_type->name()) + " unable cast to " + demangle(typeid(T).name()));
             }
+
             return *((T*)_data.get());
         }
 
@@ -444,6 +459,7 @@ namespace toolkit
         {
             return _data.operator bool();
         }
+
         bool empty() const
         {
             return !bool();
@@ -474,6 +490,7 @@ namespace toolkit
         const std::type_info* _type = nullptr;
         std::shared_ptr<void> _data;
     };
+
 
     // 用于保存一些外加属性
     class AnyStorage : public std::unordered_map<std::string, Any>

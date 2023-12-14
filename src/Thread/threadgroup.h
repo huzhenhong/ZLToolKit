@@ -76,6 +76,7 @@ namespace toolkit
             {
                 throw std::runtime_error("Trying joining itself in thread_group");
             }
+
             for (auto& it : _threads)
             {
                 if (it.second->joinable())
@@ -83,6 +84,7 @@ namespace toolkit
                     it.second->join();  // 等待线程主动退出
                 }
             }
+
             _threads.clear();
         }
 

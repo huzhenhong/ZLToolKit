@@ -27,7 +27,11 @@ namespace toolkit
          * @param print_log 是否打印代码执行时间
          */
         Ticker(uint64_t          min_ms    = 0,
-               LogContextCapture ctx       = LogContextCapture(Logger::Instance(), LWarn, __FILE__, "", __LINE__),
+               LogContextCapture ctx       = LogContextCapture(Logger::Instance(),
+                                                         LWarn,
+                                                         __FILE__,
+                                                         "",
+                                                         __LINE__),
                bool              print_log = false)
             : _ctx(std::move(ctx))
         {

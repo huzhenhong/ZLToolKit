@@ -19,6 +19,7 @@ namespace toolkit
         {
             arity = sizeof...(Args)
         };
+
         typedef Ret function_type(Args...);
         typedef Ret return_type;
         using stl_function_type = std::function<function_type>;

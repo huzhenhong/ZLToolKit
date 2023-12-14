@@ -17,7 +17,6 @@
 
 namespace toolkit
 {
-
     // 实现了一个基于函数对象的任务列队，该列队是线程安全的，任务列队任务数由信号量控制
     template<typename T>
     class TaskQueue

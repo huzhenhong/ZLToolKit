@@ -59,13 +59,18 @@ namespace toolkit
         lock_guard<mutex> lck(_mtx);
         uint64_t          totalSleepTime = 0;
         uint64_t          totalRunTime   = 0;
-        _time_list.for_each([&](const TimeRecord& rcd)
-                            {
-        if (rcd._sleep) {
-            totalSleepTime += rcd._time;
-        } else {
-            totalRunTime += rcd._time;
-        } });
+        _time_list.for_each(
+            [&](const TimeRecord& rcd)
+            {
+                if (rcd._sleep)
+                {
+                    totalSleepTime += rcd._time;
+                }
+                else
+                {
+                    totalRunTime += rcd._time;
+                }
+            });
 
         if (_sleeping)
         {
@@ -91,10 +96,12 @@ namespace toolkit
             totalTime -= rcd._time;
             _time_list.pop_front();
         }
+
         if (totalTime == 0)
         {
             return 0;
         }
+
         return (int)(totalRunTime * 100 / totalTime);
     }
 
@@ -108,13 +115,19 @@ namespace toolkit
     void TaskExecutorInterface::sync(const TaskIn& task)
     {
         semaphore sem;
-        auto      ret = async([&]()
-                         {
-        onceToken token(nullptr, [&]() {
-            //通过RAII原理防止抛异常导致不执行这句代码
-            sem.post();
-        });
-        task(); });
+        auto      ret = async(
+            [&]()
+            {
+                onceToken token(nullptr,
+                                [&]()
+                                {
+                                    // 通过RAII原理防止抛异常导致不执行这句代码
+                                    sem.post();
+                                });
+
+                task();
+            });
+
         if (ret && *ret)
         {
             sem.wait();
@@ -124,13 +137,18 @@ namespace toolkit
     void TaskExecutorInterface::sync_first(const TaskIn& task)
     {
         semaphore sem;
-        auto      ret = async_first([&]()
-                               {
-        onceToken token(nullptr, [&]() {
-            //通过RAII原理防止抛异常导致不执行这句代码
-            sem.post();
-        });
-        task(); });
+        auto      ret = async_first(
+            [&]()
+            {
+                onceToken token(nullptr,
+                                [&]()
+                                {
+                                    // 通过RAII原理防止抛异常导致不执行这句代码
+                                    sem.post();
+                                });
+                task();
+            });
+
         if (ret && *ret)
         {
             sem.wait();
@@ -170,11 +188,13 @@ namespace toolkit
                 min_load          = load;
                 executor_min_load = th;
             }
+
             if (min_load == 0)
             {
                 break;
             }
         }
+
         _thread_pos = thread_pos;
         return executor_min_load;
     }
@@ -193,17 +213,25 @@ namespace toolkit
     void TaskExecutorGetterImp::getExecutorDelay(const function<void(const vector<int>&)>& callback)
     {
         std::shared_ptr<vector<int>> delay_vec = std::make_shared<vector<int>>(_threads.size());
-        shared_ptr<void>             finished(nullptr, [callback, delay_vec](void*)
+
+        shared_ptr<void>             finished(nullptr,
+                                  [callback, delay_vec](void*)
                                   {
-        //此析构回调触发时，说明已执行完毕所有async任务
-        callback((*delay_vec)); });
+                                      // 此析构回调触发时，说明已执行完毕所有async任务
+                                      callback((*delay_vec));
+                                  });
+
         int                          index = 0;
         for (auto& th : _threads)
         {
             std::shared_ptr<Ticker> delay_ticker = std::make_shared<Ticker>();
-            th->async([finished, delay_vec, index, delay_ticker]()
-                      { (*delay_vec)[index] = (int)delay_ticker->elapsedTime(); },
-                      false);
+            th->async(
+                [finished, delay_vec, index, delay_ticker]()
+                {
+                    (*delay_vec)[index] = (int)delay_ticker->elapsedTime();
+                },
+                false);
+
             ++index;
         }
     }
@@ -221,28 +249,38 @@ namespace toolkit
         return _threads.size();
     }
 
-    size_t TaskExecutorGetterImp::addPoller(const string& name, size_t size, int priority, bool register_thread, bool enable_cpu_affinity)
+    size_t TaskExecutorGetterImp::addPoller(const string& name,
+                                            size_t        size,
+                                            int           priority,
+                                            bool          register_thread,
+                                            bool          enable_cpu_affinity)
     {
         auto cpus = thread::hardware_concurrency();
         size      = size > 0 ? size : cpus;
+
         for (size_t i = 0; i < size; ++i)
         {
             auto             full_name = name + " " + to_string(i);
             auto             cpu_index = i % cpus;
+
             EventPoller::Ptr poller(new EventPoller(full_name));
             poller->runLoop(false, register_thread);
-            poller->async([cpu_index, full_name, priority, enable_cpu_affinity]()
-                          {
-            // 设置线程优先级
-            ThreadPool::setPriority((ThreadPool::Priority)priority);
-            // 设置线程名
-            setThreadName(full_name.data());
-            // 设置cpu亲和性
-            if (enable_cpu_affinity) {
-                setThreadAffinity(cpu_index);
-            } });
+            poller->async(
+                [cpu_index, full_name, priority, enable_cpu_affinity]()
+                {
+                    // 设置线程优先级
+                    ThreadPool::setPriority((ThreadPool::Priority)priority);
+                    // 设置线程名
+                    setThreadName(full_name.data());
+                    // 设置cpu亲和性
+                    if (enable_cpu_affinity)
+                    {
+                        setThreadAffinity(cpu_index);
+                    }
+                });
             _threads.emplace_back(std::move(poller));
         }
+
         return size;
     }
 

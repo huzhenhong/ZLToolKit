@@ -262,7 +262,11 @@ namespace toolkit
         size_t            getExecutorSize() const override;
 
       protected:
-        size_t addPoller(const std::string& name, size_t size, int priority, bool register_thread, bool enable_cpu_affinity = true);
+        size_t addPoller(const std::string& name,
+                         size_t             size,
+                         int                priority,
+                         bool               register_thread,
+                         bool               enable_cpu_affinity = true);
 
       protected:
         size_t                         _thread_pos = 0;
