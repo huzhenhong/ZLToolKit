@@ -232,18 +232,26 @@ namespace toolkit
                                       const std::weak_ptr<ResourcePool_l<C>>& weakPool,
                                       std::shared_ptr<std::atomic_bool>       quit,
                                       const std::function<void(C*)>&          on_recycle)
-        : std::shared_ptr<C>(ptr, [weakPool, quit, on_recycle](C* ptr)
-                             {
-            if (on_recycle) {
-                on_recycle(ptr);
-            }
-            auto strongPool = weakPool.lock();
-            if (strongPool && !(*quit)) {
-                //循环池还在并且不放弃放入循环池
-                strongPool->recycle(ptr);
-            } else {
-                delete ptr;
-            } })
+        : std::shared_ptr<C>(
+              ptr,
+              [weakPool, quit, on_recycle](C* ptr)
+              {
+                  if (on_recycle)
+                  {
+                      on_recycle(ptr);
+                  }
+
+                  auto strongPool = weakPool.lock();
+                  if (strongPool && !(*quit))
+                  {
+                      // 循环池还在并且不放弃放入循环池
+                      strongPool->recycle(ptr);
+                  }
+                  else
+                  {
+                      delete ptr;
+                  }
+              })
         , _quit(std::move(quit))
     {
     }

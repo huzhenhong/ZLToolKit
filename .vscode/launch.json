@@ -11,8 +11,7 @@
             "environment": [],
             "cwd": "${workspaceFolder}",
             "stopAtEntry": false,
-            // "externalConsole": false,   // 使用内部终端调试
-            "console": "externalTerminal",
+            "externalConsole": false, // 使用内部终端调试
             "osx": {
                 "type": "lldb",
                 // "coreDumpPath": ""

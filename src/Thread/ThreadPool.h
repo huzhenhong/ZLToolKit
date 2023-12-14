@@ -166,6 +166,7 @@ namespace toolkit
             while (true)
             {
                 startSleep();
+
                 if (!_queue.get_task(task))
                 {
                     // 空任务，退出线程

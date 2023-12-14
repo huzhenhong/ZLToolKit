@@ -105,3 +105,5 @@ IncludeCategories:
     Priority: 3
   - Regex: '.*'
     Priority: 1
+
+AllowShortLambdasOnASingleLine: true

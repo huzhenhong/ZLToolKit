@@ -1,5 +1,6 @@
+cmake_minimum_required(VERSION 3.14)
+
 project(ZLToolKit)
-cmake_minimum_required(VERSION 3.1.3)
 
 include(CheckStructHasMember)
 include(CheckSymbolExists)
@@ -12,9 +13,11 @@ check_symbol_exists(recvmmsg sys/socket.h HAVE_RECVMMSG_API)
 if(HAVE_MMSG_HDR)
     add_definitions(-DHAVE_MMSG_HDR)
 endif()
+
 if(HAVE_SENDMMSG_API)
     add_definitions(-DHAVE_SENDMMSG_API)
 endif()
+
 if(HAVE_RECVMMSG_API)
     add_definitions(-DHAVE_RECVMMSG_API)
 endif()
@@ -29,6 +32,7 @@ if(DEFINED SOCKET_DEFAULT_BUF_SIZE)
     endif()
     add_definitions(-DSOCKET_DEFAULT_BUF_SIZE=${SOCKET_DEFAULT_BUF_SIZE})
 endif()
+
 #加载自定义模块
 #Load custom modules
 set(CMAKE_MODULE_PATH ${CMAKE_MODULE_PATH} "${CMAKE_CURRENT_SOURCE_DIR}/cmake")
@@ -88,6 +92,7 @@ endif()
 set(ENABLE_OPENSSL
     ON
     CACHE BOOL "enable openssl")
+
 set(ENABLE_MYSQL
     ON
     CACHE BOOL "enable mysql")

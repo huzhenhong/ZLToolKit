@@ -23,7 +23,9 @@ int main()
     Logger::Instance().add(std::make_shared<ConsoleChannel>());
     Logger::Instance().setWriter(std::make_shared<AsyncLogWriter>());
 
-    ThreadPool  pool(thread::hardware_concurrency(), ThreadPool::PRIORITY_HIGHEST, true);
+    ThreadPool  pool(thread::hardware_concurrency(),
+                    ThreadPool::PRIORITY_HIGHEST,
+                    true);
 
     // 每个任务耗时3秒
     auto        task_second = 3;
@@ -34,19 +36,26 @@ int main()
     vector<int> vec;
     vec.resize(task_count);
     Ticker ticker;
+
     {
         // 放在作用域中确保token引用次数减1
-        auto token = std::make_shared<onceToken>(nullptr, [&]()
-                                                 { sem.post(); });
+        auto token = std::make_shared<onceToken>(
+            nullptr,
+            [&]()
+            {
+                sem.post();
+            });
 
         for (auto i = 0; i < task_count; ++i)
         {
-            pool.async([token, i, task_second, &vec]()
-                       {
-                setThreadName(("thread pool " + to_string(i)).data());
-                std::this_thread::sleep_for(std::chrono::seconds(task_second)); //休眠三秒
-                InfoL << "task " << i << " done!";
-                vec[i] = i; });
+            pool.async(
+                [token, i, task_second, &vec]()
+                {
+                    setThreadName(("thread pool " + to_string(i)).data());
+                    std::this_thread::sleep_for(std::chrono::seconds(task_second));  // 休眠三秒
+                    InfoL << "task " << i << " done!";
+                    vec[i] = i;
+                });
         }
     }
 
@@ -58,5 +67,6 @@ int main()
     {
         InfoL << vec[i];
     }
+
     return 0;
 }

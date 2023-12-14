@@ -33,6 +33,7 @@ class string_imp : public string
     {
         DebugL << "创建string对象:" << this << " " << *this;
     };
+
     ~string_imp()
     {
         WarnL << "销毁string对象:" << this << " " << *this;
@@ -44,6 +45,7 @@ class string_imp : public string
 void onRun(ResourcePool<string_imp>& pool, int threadNum)
 {
     std::random_device rd;
+
     while (!g_bExitFlag)
     {
         // 从循环池获取一个可用的对象
@@ -59,6 +61,7 @@ void onRun(ResourcePool<string_imp>& pool, int threadNum)
             // 这个对象是循环使用的
             InfoL << "后台线程 " << threadNum << ":" << *obj_ptr;
         }
+
         // 标记该对象被本线程使用
         obj_ptr->assign(StrPrinter << "keeped by thread:" << threadNum);
 
@@ -94,8 +97,11 @@ int main()
 
     for (int i = 0; i < 4; ++i)
     {
-        group.create_thread([i, &pool]()
-                            { onRun(pool, i); });
+        group.create_thread(
+            [i, &pool]()
+            {
+                onRun(pool, i);
+            });
     }
 
     // 等待3秒钟，此时循环池里面可用的对象基本上最少都被使用过一遍了
